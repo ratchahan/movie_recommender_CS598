@@ -3,11 +3,10 @@ import pandas as pd
 import numpy as np
 import random
 import joblib
-from PIL import Image
 from scipy.sparse import csr_matrix
 from sklearn.decomposition import TruncatedSVD
 
-# StreamLit initialization
+# StreamLit initialization/Image
 st.set_page_config(layout="wide")
 
 st.title('Awesome Movie Recommender')
