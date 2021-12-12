@@ -41,8 +41,7 @@ genre_list = ["Suprise Me!",
               "Western"]
 
 my_userid = int(10000)
-viewer_limit = 1000
-ratings_limit = 3.9
+
 
 @st.cache
 def load_data():
@@ -78,11 +77,27 @@ def recommend_by_genre(genre):
 
     highly_rated_popular_movies = pd.merge(high_rated_movies, popular_movies_ingenre, how = 'inner', on='MovieID')
     
-    results = highly_rated_popular_movies[(highly_rated_popular_movies['UserCount']>viewer_limit) 
-                                         & (highly_rated_popular_movies['Rating']>=ratings_limit)]
+    viewer_limit = 1000
+    ratings_limit = 3.9
+    check = 0
+    while viewer_limit > 0 and ratings_limit > 0:
+        results = highly_rated_popular_movies[(highly_rated_popular_movies['UserCount']>viewer_limit) 
+                                             & (highly_rated_popular_movies['Rating']>=ratings_limit)]
+        if len(results) < 11:
+            if check == 0:
+                viewer_limit -= 100
+                check = 1
+            else:
+                ratings_limit -= 0.1
+                check = 0
+        else:
+            break
     
     results = results.sample(frac=1).reset_index(drop=True)
-    return results["MovieID"].tolist()
+    movie_ids = results["MovieID"].tolist()
+    # st.write('recommend_by_genre =', len(results), len(movie_ids))
+    
+    return movie_ids
 
 
 def create_X(df):
@@ -127,7 +142,7 @@ def collab_selector(df):
     rated_movies = list()
     # movie_candidates = selected_movies_df.sample(frac=1).reset_index(drop=True)
     # Create 2x5 columns to display movies
-    for i in range(2):
+    for i in range(4):
         cols = st.columns(5)
         for index, col in enumerate(cols):
             with col:
@@ -146,26 +161,8 @@ def collab_selector(df):
     new_ratings_df = df.append(movie_selection)
     return new_ratings_df, rated_movies
     
-
-def display_results1(results):
-    # Create 2x5 columns to display movies
-    for i in range(2):
-        cols = st.columns(5)
-        for index, col in enumerate(cols):
-            with col:
-                # Do pandas select by location - try it first!
                 
-                movie_id = results.loc[5*i + index]['MovieID']
-                # st.write(movie_id)
-                
-                title = movies_df.loc[movies_df['MovieID'] == int(movie_id), 'Title'].values[0]
-                st.write(title.ljust(60))
-                
-                # col.header(title)
-                st.image('https://liangfgithub.github.io/MovieImages/{}.jpg?raw=true'.replace('{}', str(int(movie_id))))
-
-                
-def display_results2(results):
+def display_results(results):
     # Create 2x5 columns to display movies
     for i in range(2):
         cols = st.columns(5)
@@ -192,10 +189,10 @@ select_event =  add_selectbox = st.sidebar.selectbox(
 )
 
 
+### Process System I request
 if select_event == "System I: Genre-based":
     st.write("You selected System I: Genre-based Recommender")
              
-    ### Process System I request
     option = None
     ### Add st.expander to offer a selection box
     sel_expander = st.expander(label='Expand to select a Movie Genre')
@@ -210,14 +207,14 @@ if select_event == "System I: Genre-based":
     with res_expander:
         if option is not None:
             recommend = recommend_by_genre(option)
-            display_results2(recommend)
+            display_results(recommend)
 
+### Process System II request
 elif select_event == "System II: Collaborative Filtering":
     st.write("You selected System II: Collaborative Filtering Recommender")    
     
     new_ratings_df = ratings_df.copy(deep=True)
     
-    ### Process System II request
     sel_expander = st.expander(label='Expand to rate your movies')
     with sel_expander:          
         new_ratings_df, rated_movies = collab_selector(new_ratings_df)
@@ -228,13 +225,9 @@ elif select_event == "System II: Collaborative Filtering":
     res_expander = st.expander(label='Expand to see your movie recommensations')
     with res_expander:
         if st.button('I am done with rating. Show me the movies'):            
-            top_N_movies = predict_movies(new_ratings_df, rated_movies)
-            display_results2(top_N_movies)
-        # if option is not None:
-            # recommend = recommend_by_genre(option)
-            # display_results(recommend)
-            # st.write('To be implemented')
-    
+            recommend = predict_movies(new_ratings_df, rated_movies)
+            display_results(recommend)
+
 else:
     st.write("First select an option") 
 
