@@ -20,7 +20,7 @@ selected_movies_df = None
 movie_titles = None
 movie_list = None
 
-genre_list = ["Suprise Me!",
+genre_list = ["Surprise me!",
               "Action", 
               "Adventure",
               "Animation",
@@ -58,7 +58,7 @@ def load_data():
 
 
 def recommend_by_genre(genre):
-    if genre == "Suprise Me!":
+    if genre == "Surprise me!":
         x = genre_list[random.randint(1, len(genre_list)-1)]
     else:
         x = genre
@@ -152,6 +152,7 @@ def collab_selector(df):
                 st.write(title)
                 st.image('https://liangfgithub.github.io/MovieImages/{}.jpg?raw=true'.replace('{}', str(movie_id)))
                 
+                # Give user the option to rate the movies they have seen
                 rating = st.slider('Your rating', 1, 5, key=int(movie_id))
                 if (rating > 1):
                     selected = {'UserID' : my_userid, 'MovieID' : int(movie_id), 'Rating': rating}
@@ -198,10 +199,6 @@ if select_event == "System I: Genre-based":
     sel_expander = st.expander(label='Expand to select a Movie Genre')
     with sel_expander:
         option = st.selectbox('Select the Genre you are interested in (or let us surprise you with our selection):', genre_list)
-        # st.write('You selected:', option)
-        # recommend = recommend_by_genre(option)
-        # display_results(recommend)
-        # st.write(rec)
     
     res_expander = st.expander(label='Expand to see your movie recommensations - ' + option)
     with res_expander:
@@ -219,13 +216,19 @@ elif select_event == "System II: Collaborative Filtering":
     with sel_expander:          
         new_ratings_df, rated_movies = collab_selector(new_ratings_df)
     
-    st.write('You have rated', len(new_ratings_df) - len(ratings_df), 'movies')
-    # st.write(rated_movies)
+    rated_count = len(new_ratings_df) - len(ratings_df)
+    st.write('You have rated', rated_count, 'movies')
     
-    res_expander = st.expander(label='Expand to see your movie recommensations')
+    res_expander = st.expander(label='Expand to see your movie recommendations')
     with res_expander:
-        if st.button('I am done with rating. Show me the movies'):            
-            recommend = predict_movies(new_ratings_df, rated_movies)
+        if st.button('I am done with rating. Show me the movies'):
+            if rated_count == 0:
+                st.write("You have not rated any movies, that's okay. Here are some selections that may surprise you!")
+                recommend = recommend_by_genre('Surprise me!')
+            else:
+                recommend = predict_movies(new_ratings_df, rated_movies)
+
+            # Show movies based on this user's selections
             display_results(recommend)
 
 else:
